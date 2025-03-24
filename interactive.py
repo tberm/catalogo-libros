@@ -37,8 +37,7 @@ st.markdown("""
 1. Use form to filter books to specific rooms and row/column, or to search.
 2. Select books by clicking in the left-most column of the table.
 3. As you pick out books to take to el Remate, select them and click "Añadir al carrito"
-4. Once you've picked all your books, switch to the "Carrito" tab to get the list of books to email.
-5. Delivery time ![Delivery time](https://tenor.com/view/dogshop-shopping-funny-animals-dogs-gif-9869204)
+4. Once you've picked all your books, switch to the "Carrito" tab where you can get the list of books selected.
 
 Don't forget...
 * The carrito list is tied to your login. Several people can log in at once with
