@@ -78,7 +78,7 @@ def load_data():
     try:
         # local version is the master
         carrito_df = pd.read_csv(carrito_name + ".csv", dtype="str")
-    except (FileNotFoundError, pd.EmptyDataError):
+    except (FileNotFoundError, pd.errors.EmptyDataError):
         try:
             # in case local has been deleted but we have cloud backup
             carrito_df = sheets_conn.read(worksheet=carrito_name, dtype="str")
