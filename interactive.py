@@ -1,16 +1,19 @@
-import streamlit as st
-import pandas as pd
 from functools import partial
 from pathlib import Path
 from threading import Thread
+import time
+
+import streamlit as st
+import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from gspread.exceptions import WorksheetNotFound
-
 
 
 st.set_page_config(layout="wide")
 
 st.title("Catálogo libros")
+
+last_sync_time = time.time()
 
 
 if not st.experimental_user.is_logged_in:
@@ -73,19 +76,27 @@ def load_data():
     df = df[cols[0:4]].join([df[cols[11:14]], df[cols[4:11]]])
 
     try:
+        # local version is the master
         carrito_df = pd.read_csv(carrito_name + ".csv", dtype="str")
-    except FileNotFoundError:
+    except (FileNotFoundError, pd.EmptyDataError):
         try:
+            # in case local has been deleted but we have cloud backup
             carrito_df = sheets_conn.read(worksheet=carrito_name, dtype="str")
         except WorksheetNotFound:
+            # create cloud (and local) version
             carrito_df = blank_carrito_df(df)
             carrito_df = sheets_conn.create(worksheet=carrito_name, data=carrito_df)
         
         carrito_df.to_csv(carrito_name + ".csv", index=False)
     else:
-        target = partial(sync_carrito, carrito_df)
-        thread = Thread(target=target)
-        thread.start()
+        # we have a local version - make sure cloud is up to date
+        global last_sync_time
+        # avoid syncing more than every 2s as there is a rate limit
+        if (time.time() - last_sync_time) > 2:
+            last_sync_time = time.time()
+            target = partial(sync_carrito, carrito_df)
+            thread = Thread(target=target)
+            thread.start()
 
 
     carrito_df["orig_idx"] = carrito_df["orig_idx"].astype("int")
