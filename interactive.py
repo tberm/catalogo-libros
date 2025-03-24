@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")
 
 st.title("Catálogo libros")
 
-last_sync_time = time.time()
+st.session_state.last_sync_time = time.time()
 
 
 if not st.experimental_user.is_logged_in:
@@ -31,23 +31,29 @@ if st.experimental_user.email not in st.secrets["allowed_users"]:
     st.write("User not authorised")
     st.stop()
 
+header = st.container()
+body = st.container()
 
-st.header("How to use")
-st.markdown("""
-1. Use form to filter books to specific rooms and row/column, or to search.
-2. Select books by clicking in the left-most column of the table.
-3. As you pick out books to take to el Remate, select them and click "Añadir al carrito"
-4. Once you've picked all your books, switch to the "Carrito" tab where you can get the list of books selected.
+with header:
+    show_instr = st.toggle("Show instructions", value=True)
 
-Don't forget...
-* The carrito list is tied to your login. Several people can log in at once with
-  separate accounts and make their own carritos. Don't login as the same user in
-  several places at once or you will overwrite the carrito.
-* All the data shown here is saved in Google Sheets. You can access it [here](https://docs.google.com/spreadsheets/d/1JuEc3qxMzNzyvzJy_dkin70ydD3bxxbRHAw-xVLcF0k/edit?gid=1534151630#gid=1534151630).
-* If you need to make changes to the catalogue, edit the above sheet, but don't rename the columns or move them or my app will be sad :(
-* Also don't add/remove rows in the spreadsheet while you have things in the carrito or it will get confused.
-* The app doesn't move things to "Lugar: Enviado a Remate" because we stopped updating that a long time ago.
-""")
+    if show_instr:
+        st.header("How to use")
+        st.markdown("""
+        1. Use form to filter books to specific rooms and row/column, or to search.
+        2. Select books by clicking in the left-most column of the table.
+        3. As you pick out books to take to el Remate, select them and click "Añadir al carrito"
+        4. Once you've picked all your books, switch to the "Carrito" tab where you can get the list of books selected.
+
+        Don't forget...
+        * The carrito list is tied to your login. Several people can log in at once with
+        separate accounts and make their own carritos. Don't login as the same user in
+        several places at once or you will overwrite the carrito.
+        * All the data shown here is saved in Google Sheets. You can access it [here](https://docs.google.com/spreadsheets/d/1JuEc3qxMzNzyvzJy_dkin70ydD3bxxbRHAw-xVLcF0k/edit?gid=1534151630#gid=1534151630).
+        * If you need to make changes to the catalogue, edit the above sheet, but don't rename the columns or move them or my app will be sad :(
+        * Also don't add/remove rows in the spreadsheet while you have things in the carrito or it will get confused.
+        * The app doesn't move things to "Lugar: Enviado a Remate" because we stopped updating that a long time ago.
+        """)
 
 
 carrito_name = "carrito_" + st.experimental_user.given_name
@@ -90,10 +96,9 @@ def load_data():
         carrito_df.to_csv(carrito_name + ".csv", index=False)
     else:
         # we have a local version - make sure cloud is up to date
-        global last_sync_time
         # avoid syncing more than every 2s as there is a rate limit
-        if (time.time() - last_sync_time) > 2:
-            last_sync_time = time.time()
+        if (time.time() - st.session_state.last_sync_time) > 2:
+            st.session_state.last_sync_time = time.time()
             target = partial(sync_carrito, carrito_df)
             thread = Thread(target=target)
             thread.start()
@@ -121,7 +126,8 @@ sheets_conn = st.connection("gsheets", type=GSheetsConnection)
 
 full_df, carrito_df = load_data()
 
-main_tab, carrito_tab  = st.tabs(["Catálogo", "Carrito"])
+with body:
+    main_tab, carrito_tab = st.tabs(["Catálogo", "Carrito"])
 
 with main_tab:
     lugar_w = st.pills(
